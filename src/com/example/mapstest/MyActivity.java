@@ -41,7 +41,8 @@ public class MyActivity extends FragmentActivity implements LocationListener
     Location prevLocation;
     Button btStart;
     UiSettings uiSettings;
-    Boolean isRecorded = false;
+    Boolean isRecording = false;
+    Boolean isFollowing = false;
     String[] data = {"Normal", "Satellite", "Hybrid"};
 
     final String TAG = "myLogs";
@@ -71,7 +72,39 @@ public class MyActivity extends FragmentActivity implements LocationListener
         uiSettings = map.getUiSettings();
         uiSettings.setCompassEnabled(false);
 
+        setLocationButtonPosition();
+        setListeners();
         setSpinner();
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+    }
+
+    private void setLocationButtonPosition()
+    {
+        map.setMyLocationEnabled(true);
+        uiSettings.setMyLocationButtonEnabled(true);
+        View myLocationParent = ((View) mapFragment.getView().findViewById(1).getParent());
+
+        int positionWidth = myLocationParent.getLayoutParams().width;
+        int positionHeight = myLocationParent.getLayoutParams().height;
+
+        FrameLayout.LayoutParams positionParams = new FrameLayout.LayoutParams(
+                positionWidth, positionHeight);
+        positionParams.setMargins(0, 200, 0, 0);
+
+        myLocationParent.setLayoutParams(positionParams);
+    }
+
+    @Override
+    protected void onDestroy()
+    {
+        super.onDestroy();
+        locationManager.removeUpdates(this);
     }
 
     private void drawDistance()
@@ -122,6 +155,28 @@ public class MyActivity extends FragmentActivity implements LocationListener
         });
     }
 
+    private void setListeners() {
+        map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+            @Override
+            public boolean onMyLocationButtonClick() {
+                if (isFollowing) {
+                    makeToast("Following the current position stopped");
+                    isFollowing = false;
+                } else {
+                    moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+                    makeToast("Following the current position");
+                    isFollowing = true;
+                }
+                return true;
+            }
+        });
+    }
+
+    private void makeToast(String s)
+    {
+        Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
@@ -148,17 +203,13 @@ public class MyActivity extends FragmentActivity implements LocationListener
     }
 
     @Override
-    protected void onDestroy()
-    {
-        super.onDestroy();
-        locationManager.removeUpdates(this);
-    }
-
-    @Override
     public void onLocationChanged(Location location)
     {
-        moveCamera(location);
-        if (isRecorded && (location.distanceTo(prevLocation) < MAX_DISTANCE_DIFFERENCE + delta))
+        if (isFollowing)
+        {
+            moveCamera(location);
+        }
+        if (isRecording && (location.distanceTo(prevLocation) < MAX_DISTANCE_DIFFERENCE + delta))
         {
             setMarker(location);
         }
@@ -208,9 +259,9 @@ public class MyActivity extends FragmentActivity implements LocationListener
         switch (v.getId())
         {
             case R.id.btStart:
-                if (isRecorded)
+                if (isRecording)
                 {
-                    isRecorded = false;
+                    isRecording = false;
                     btStart.setText("Start");
                 }
                 else
@@ -219,7 +270,7 @@ public class MyActivity extends FragmentActivity implements LocationListener
                     distance = 0;
                     drawDistance();
                     prevLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    isRecorded = true;
+                    isRecording = true;
                     btStart.setText("Stop");
                 }
                 break;
