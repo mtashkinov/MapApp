@@ -5,23 +5,27 @@ import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.view.*;
-
 import android.widget.*;
-import com.example.mapstest.R;
 import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.*;
 import android.widget.AdapterView.OnItemSelectedListener;
+import android.view.Gravity;
+import android.view.View;
 
-import java.util.Objects;
-
-public class MyActivity extends FragmentActivity implements LocationListener
+public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener
 {
+    final String TAG = "myLogs";
+
+    final double ACCURACY = 0.0005;
+
+    final float START_ZOOM = 18;
+
     final int MAX_DISTANCE_DIFFERENCE = 10;
+
+    final int wrapContent = LinearLayout.LayoutParams.WRAP_CONTENT;
 
     final int DIFFERENCE_NONE = 0;
     final int DIFFERENCE_ONE = 1;
@@ -34,28 +38,35 @@ public class MyActivity extends FragmentActivity implements LocationListener
 
     int distance = 0;
     int delta = 0;
-    SupportMapFragment mapFragment;
-    GoogleMap map;
-    LocationManager locationManager;
-    TextView tvDistance;
-    Location prevLocation;
-    Button btStart;
-    UiSettings uiSettings;
+
     Boolean isRecording = false;
     Boolean isFollowing = false;
+    Boolean isAnythingPainting = false;
     String[] data = {"Normal", "Satellite", "Hybrid"};
 
-    final String TAG = "myLogs";
+    SupportMapFragment mapFragment;
+    GoogleMap map;
+    UiSettings uiSettings;
+    LocationManager locationManager;
+
+    TextView tvDistance;
+    Button btStart;
+    Button btSave;
+
+    Location prevLocation;
+    Location curLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+        setContentView(R.layout.run);
         getActionBar().hide();
         tvDistance = (TextView) findViewById(R.id.tvDistance);
         tvDistance.setGravity(Gravity.CENTER);
         btStart = (Button) findViewById(R.id.btStart);
+        btStart.setOnClickListener(this);
+        btSave = (Button) findViewById(R.id.btSave);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         map = mapFragment.getMap();
@@ -81,7 +92,8 @@ public class MyActivity extends FragmentActivity implements LocationListener
     protected void onResume()
     {
         super.onResume();
-        moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+        moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER), START_ZOOM);
+        curLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     }
 
     private void setLocationButtonPosition()
@@ -156,20 +168,36 @@ public class MyActivity extends FragmentActivity implements LocationListener
     }
 
     private void setListeners() {
-        map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+        map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener()
+        {
             @Override
-            public boolean onMyLocationButtonClick() {
-                if (isFollowing) {
-                    makeToast("Following the current position stopped");
-                    isFollowing = false;
-                } else {
-                    moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
-                    makeToast("Following the current position");
+            public boolean onMyLocationButtonClick()
+            {
+                if (!isFollowing)
+                {
+                    moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER), START_ZOOM);
+                    makeToast("Following the current location");
                     isFollowing = true;
                 }
                 return true;
             }
         });
+
+        map.setOnCameraChangeListener(
+                new GoogleMap.OnCameraChangeListener()
+                {
+                    @Override
+                    public void onCameraChange(CameraPosition cameraPosition)
+                    {
+                        LatLng latLng = cameraPosition.target;
+                        if (isFollowing && ((Math.abs(curLocation.getLongitude() - latLng.longitude) > ACCURACY) || (Math.abs(curLocation.getLatitude() - latLng.latitude) > ACCURACY)))
+                        {
+                            makeToast("Following the current location stopped");
+                            isFollowing = false;
+                        }
+                    }
+                }
+        );
     }
 
     private void makeToast(String s)
@@ -205,20 +233,22 @@ public class MyActivity extends FragmentActivity implements LocationListener
     @Override
     public void onLocationChanged(Location location)
     {
+        curLocation = location;
         if (isFollowing)
         {
-            moveCamera(location);
+            moveCamera(location, map.getCameraPosition().zoom);
         }
         if (isRecording && (location.distanceTo(prevLocation) < MAX_DISTANCE_DIFFERENCE + delta))
         {
+            isAnythingPainting = true;
             setMarker(location);
         }
     }
 
-    protected void moveCamera(Location location)
+    protected void moveCamera(Location location, float zoom)
     {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 18);
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
         map.animateCamera(cameraUpdate);
     }
 
@@ -254,6 +284,7 @@ public class MyActivity extends FragmentActivity implements LocationListener
         prevLocation = location;
     }
 
+    @Override
     public void onClick(View v)
     {
         switch (v.getId())
@@ -263,15 +294,21 @@ public class MyActivity extends FragmentActivity implements LocationListener
                 {
                     isRecording = false;
                     btStart.setText("Start");
+                    if (isAnythingPainting)
+                    {
+                        btSave.setVisibility(View.VISIBLE);
+                    }
                 }
                 else
                 {
+                    isAnythingPainting = false;
                     map.clear();
                     distance = 0;
                     drawDistance();
                     prevLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                     isRecording = true;
                     btStart.setText("Stop");
+                    btSave.setVisibility(View.GONE);
                 }
                 break;
             case R.id.tvDistance:

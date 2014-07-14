@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+    </fragment>
+
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:focusableInTouchMode="true">
+
+            <Spinner
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/spinner"
+                    android:spinnerMode="dropdown"
+                    android:layout_weight="1"
+                    android:textAlignment="center"
+                    />
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/tvDistance"
+                    android:layout_gravity="center"
+                    android:layout_weight="2"
+                    android:textColor="@color/Black"
+                    android:minHeight="40dp"
+                    android:textSize="20dp"
+                    android:clickable="true"
+                    android:onClick="onClick"/>
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Start"
+                    android:id="@+id/btStart"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:maxWidth="50dp"
+                    android:onClick="onClick"
+                    android:layout_marginTop="1dp"
+                    android:layout_marginRight="1dp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusableInTouchMode="false">
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Save"
+                    android:id="@+id/btSave"
+                    android:visibility="gone"
+                    android:layout_marginLeft="1dp"
+                    android:layout_marginTop="10dp"
+                    android:minWidth="50dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
