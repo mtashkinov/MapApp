@@ -73,7 +73,7 @@
                     android:visibility="gone"
                     android:layout_marginLeft="1dp"
                     android:layout_marginTop="10dp"
-                    android:minWidth="50dp"/>
+                    android:minWidth="130dp"/>
         </LinearLayout>
 
     </LinearLayout>

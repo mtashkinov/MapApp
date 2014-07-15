@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MyActivity</string>
-    <string name="test">Test</string>
+    <string name="app_name">Map Test</string>
+    <string name="exit">Exit</string>
+    <string name="new_run">New run</string>
+    <string name="save_data">Save current run?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="cancel">Cancel</string>
+    <string name="saved">Saved</string>
+    <string name="save_run">Saving run</string>
+    <string name="inp_name">Input run name</string>
+    <string name="ok">Ok</string>
+    <string name="db_name">mytable</string>
 </resources>

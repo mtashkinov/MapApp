@@ -22,6 +22,11 @@
                 android:label="RunActivity"
                 android:configChanges="keyboardHidden|orientation|screenSize">
         </activity>
+        <activity
+                android:name="LoadActivity"
+                android:label="LoadActivity"
+                android:configChanges="keyboardHidden|orientation|screenSize">
+        </activity>
         <meta-data
                 android:name="com.google.android.maps.v2.API_KEY"
                 android:value="AIzaSyCDH99SHLdpNcdD4h5yWDEf9ZAQ5IcIiR4">

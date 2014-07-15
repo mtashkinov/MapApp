@@ -1,12 +1,17 @@
 package com.example.mapstest;
 
+import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.*;
 import android.widget.*;
 import com.google.android.gms.maps.*;
@@ -14,6 +19,9 @@ import com.google.android.gms.maps.model.*;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.view.Gravity;
 import android.view.View;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener
 {
@@ -25,8 +33,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     final int MAX_DISTANCE_DIFFERENCE = 10;
 
-    final int wrapContent = LinearLayout.LayoutParams.WRAP_CONTENT;
-
     final int DIFFERENCE_NONE = 0;
     final int DIFFERENCE_ONE = 1;
     final int DIFFERENCE_TWO = 2;
@@ -36,13 +42,22 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     final int DIFFERENCE_FIFTEEN = 15;
     final int DIFFERENCE_TWENTY = 20;
 
+    final int STATUS_START_PRESSED = 0;
+    final int STATUS_BACK_PRESSED = 1;
+
     int distance = 0;
     int delta = 0;
 
     Boolean isRecording = false;
     Boolean isFollowing = false;
     Boolean isAnythingPainting = false;
+    Boolean isFirstLocationData = true;
     String[] data = {"Normal", "Satellite", "Hybrid"};
+    String result;
+
+    List<List<Double>> coordinates = new ArrayList<List<Double>>();
+
+    DBHelper dbHelper;
 
     SupportMapFragment mapFragment;
     GoogleMap map;
@@ -67,6 +82,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         btStart = (Button) findViewById(R.id.btStart);
         btStart.setOnClickListener(this);
         btSave = (Button) findViewById(R.id.btSave);
+        btSave.setOnClickListener(this);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         map = mapFragment.getMap();
@@ -92,8 +108,9 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     protected void onResume()
     {
         super.onResume();
-        moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER), START_ZOOM);
-        curLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        moveCamera(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER), START_ZOOM);
+        curLocation = locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER);
+        isFirstLocationData = true;
     }
 
     private void setLocationButtonPosition()
@@ -167,7 +184,8 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         });
     }
 
-    private void setListeners() {
+    private void setListeners()
+    {
         map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener()
         {
             @Override
@@ -234,6 +252,11 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     public void onLocationChanged(Location location)
     {
         curLocation = location;
+        if (isFirstLocationData)
+        {
+            isFirstLocationData = false;
+            moveCamera(location, START_ZOOM);
+        }
         if (isFollowing)
         {
             moveCamera(location, map.getCameraPosition().zoom);
@@ -242,7 +265,17 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         {
             isAnythingPainting = true;
             setMarker(location);
+            saveCoord(location);
         }
+    }
+
+    protected void saveCoord(Location location)
+    {
+        List<Double> list = new ArrayList<Double>();
+        list.add(location.getLongitude());
+        list.add(location.getLatitude());
+
+        coordinates.add(list);
     }
 
     protected void moveCamera(Location location, float zoom)
@@ -284,6 +317,31 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         prevLocation = location;
     }
 
+    private void start()
+    {
+        isAnythingPainting = false;
+        map.clear();
+        distance = 0;
+        drawDistance();
+        prevLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        isRecording = true;
+        btStart.setText("Stop");
+        btSave.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        if (isAnythingPainting)
+        {
+            dialogShow(STATUS_START_PRESSED);
+        }
+        else
+        {
+            finish();
+        }
+    }
+
     @Override
     public void onClick(View v)
     {
@@ -301,22 +359,136 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 }
                 else
                 {
-                    isAnythingPainting = false;
-                    map.clear();
-                    distance = 0;
-                    drawDistance();
-                    prevLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    isRecording = true;
-                    btStart.setText("Stop");
-                    btSave.setVisibility(View.GONE);
+                    if (isAnythingPainting)
+                    {
+                        dialogShow(STATUS_START_PRESSED);
+                    }
+                    else
+                    {
+                        start();
+                    }
                 }
                 break;
             case R.id.tvDistance:
             {
                 openOptionsMenu();
             }
+            case R.id.btSave:
+            {
+                save(getName());
+            }
             default:
                 break;
         }
+    }
+
+    private String getName()
+    {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(RunActivity.this);
+        final EditText etName = (EditText) findViewById(R.id.etName);
+
+        dialog.setView(findViewById(R.layout.dialog));
+        dialog.setTitle(R.string.save_run);
+
+        dialog.setNeutralButton(
+            R.string.cancel,
+            new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int arg1)
+                {
+
+                }
+            }
+        );
+
+        dialog.setPositiveButton(
+                R.string.ok,
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int arg2)
+                    {
+                        result = etName.getText().toString();
+                    }
+                }
+        );
+        dialog.show();
+        return result;
+    }
+
+    private void save(String name)
+    {
+        ContentValues cv = new ContentValues();
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        for (List<Double> list : coordinates)
+        {
+            cv.put("run_name", name);
+            cv.put("long", list.get(0));
+            cv.put("lat", list.get(1));
+            db.insert(getString(R.string.db_name), null, cv);
+        }
+
+        dbHelper.close();
+    }
+
+    private void dialogShow(final int status)
+    {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(RunActivity.this);
+
+        switch (status)
+        {
+            case STATUS_START_PRESSED:
+                dialog.setTitle(R.string.new_run);
+                break;
+            case STATUS_BACK_PRESSED:
+                dialog.setTitle(R.string.exit);
+                break;
+            default:
+                break;
+        }
+
+        dialog.setMessage(R.string.save_data);
+
+        dialog.setPositiveButton (
+            R.string.yes,
+            new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int arg1)
+                {
+                }
+            }
+        );
+
+        dialog.setNeutralButton(
+            R.string.cancel,
+            new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int arg2)
+                {
+                }
+            }
+        );
+
+        dialog.setNegativeButton(
+            R.string.no,
+            new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int arg3)
+                {
+                    switch (status)
+                    {
+                        case STATUS_START_PRESSED:
+                            start();
+                            break;
+                        case STATUS_BACK_PRESSED:
+                            finish();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        );
+        dialog.show();
     }
 }
