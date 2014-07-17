@@ -20,8 +20,10 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.view.Gravity;
 import android.view.View;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener
 {
@@ -45,17 +47,16 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     final int STATUS_START_PRESSED = 0;
     final int STATUS_BACK_PRESSED = 1;
 
-    int distance = 0;
     int delta = 0;
 
     Boolean isRecording = false;
     Boolean isFollowing = false;
     Boolean isAnythingPainting = false;
     Boolean isFirstLocationData = true;
+    Boolean isSaved = false;
     String[] data = {"Normal", "Satellite", "Hybrid"};
-    String result;
 
-    List<List<Double>> coordinates = new ArrayList<List<Double>>();
+    Run curRun = new Run();
 
     DBHelper dbHelper;
 
@@ -68,8 +69,8 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     Button btStart;
     Button btSave;
 
-    Location prevLocation;
-    Location curLocation;
+    MyLocation prevLocation;
+    MyLocation curLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -109,7 +110,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     {
         super.onResume();
         moveCamera(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER), START_ZOOM);
-        curLocation = locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER);
+        curLocation = new MyLocation(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER));
         isFirstLocationData = true;
     }
 
@@ -138,7 +139,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     private void drawDistance()
     {
-        tvDistance.setText("Distance: " + distance + " delta: " + delta);
+        tvDistance.setText("Distance: " + curRun.distance + " delta: " + delta);
     }
 
     private void setSpinner()
@@ -149,7 +150,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         spinner.setAdapter(adapter);
         spinner.setSelection(0);
-        spinner.setPrompt("Normal");
+        spinner.setPrompt(getString(R.string.normal));
         spinner.setGravity(Gravity.CENTER);
         spinner.setOnItemSelectedListener(new OnItemSelectedListener()
         {
@@ -194,7 +195,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 if (!isFollowing)
                 {
                     moveCamera(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER), START_ZOOM);
-                    makeToast("Following the current location");
+                    makeToast(getString(R.string.follow));
                     isFollowing = true;
                 }
                 return true;
@@ -210,7 +211,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                         LatLng latLng = cameraPosition.target;
                         if (isFollowing && ((Math.abs(curLocation.getLongitude() - latLng.longitude) > ACCURACY) || (Math.abs(curLocation.getLatitude() - latLng.latitude) > ACCURACY)))
                         {
-                            makeToast("Following the current location stopped");
+                            makeToast(getString(R.string.follow_stopped));
                             isFollowing = false;
                         }
                     }
@@ -251,7 +252,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     @Override
     public void onLocationChanged(Location location)
     {
-        curLocation = location;
+        curLocation = new MyLocation(location);
         if (isFirstLocationData)
         {
             isFirstLocationData = false;
@@ -261,21 +262,19 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         {
             moveCamera(location, map.getCameraPosition().zoom);
         }
-        if (isRecording && (location.distanceTo(prevLocation) < MAX_DISTANCE_DIFFERENCE + delta))
+        if (isRecording && (location.distanceTo(prevLocation.toLocation(location.getProvider())) < MAX_DISTANCE_DIFFERENCE + delta))
         {
+            if (curRun.locations.isEmpty())
+            {
+                curRun.locations.add(prevLocation);
+            }
+            curRun.locations.add(curLocation);
             isAnythingPainting = true;
-            setMarker(location);
-            saveCoord(location);
+            curRun.drawSegment(map, prevLocation, curLocation);
+            curRun.distance += location.distanceTo(prevLocation.toLocation(location.getProvider()));
+            drawDistance();
+            prevLocation = curLocation;
         }
-    }
-
-    protected void saveCoord(Location location)
-    {
-        List<Double> list = new ArrayList<Double>();
-        list.add(location.getLongitude());
-        list.add(location.getLatitude());
-
-        coordinates.add(list);
     }
 
     protected void moveCamera(Location location, float zoom)
@@ -301,29 +300,15 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     {
     }
 
-    public void setMarker(Location location)
-    {
-        LatLng prevLatLng = new LatLng(prevLocation.getLatitude(), prevLocation.getLongitude());
-        LatLng curLatLng = new LatLng(location.getLatitude(), location.getLongitude());
 
-        PolygonOptions polygonOptions = new PolygonOptions()
-                .add(prevLatLng).add(curLatLng)
-                .strokeColor(Color.RED).strokeWidth(10).fillColor(Color.RED);
-        map.addPolygon(polygonOptions);
-
-        distance += location.distanceTo(prevLocation);
-        drawDistance();
-
-        prevLocation = location;
-    }
 
     private void start()
     {
+        curRun = new Run();
         isAnythingPainting = false;
         map.clear();
-        distance = 0;
         drawDistance();
-        prevLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        prevLocation = new MyLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         isRecording = true;
         btStart.setText("Stop");
         btSave.setVisibility(View.GONE);
@@ -332,9 +317,9 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     @Override
     public void onBackPressed()
     {
-        if (isAnythingPainting)
+        if (isAnythingPainting && !isSaved)
         {
-            dialogShow(STATUS_START_PRESSED);
+            dialogShow(STATUS_BACK_PRESSED);
         }
         else
         {
@@ -351,6 +336,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 if (isRecording)
                 {
                     isRecording = false;
+                    isSaved = false;
                     btStart.setText("Start");
                     if (isAnythingPainting)
                     {
@@ -359,7 +345,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 }
                 else
                 {
-                    if (isAnythingPainting)
+                    if (isAnythingPainting && !isSaved)
                     {
                         dialogShow(STATUS_START_PRESSED);
                     }
@@ -372,17 +358,19 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
             case R.id.tvDistance:
             {
                 openOptionsMenu();
+                break;
             }
             case R.id.btSave:
             {
-                save(getName());
+                save();
+                break;
             }
             default:
                 break;
         }
     }
 
-    private String getName()
+    /*private String getName()
     {
         AlertDialog.Builder dialog = new AlertDialog.Builder(RunActivity.this);
         final EditText etName = (EditText) findViewById(R.id.etName);
@@ -413,22 +401,35 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         );
         dialog.show();
         return result;
-    }
+    }*/
 
-    private void save(String name)
+    private void save()
     {
         ContentValues cv = new ContentValues();
+        dbHelper = new DBHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        for (List<Double> list : coordinates)
+        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+        Calendar calendar = Calendar.getInstance();
+        String name = dateFormat.format(calendar.getTime());
+
+
+        cv.put("name", name);
+        try
         {
-            cv.put("run_name", name);
-            cv.put("long", list.get(0));
-            cv.put("lat", list.get(1));
-            db.insert(getString(R.string.db_name), null, cv);
+            cv.put("run", Run.serialize(curRun));
         }
+        catch (IOException ex)
+        {
+            System.out.println("IO Exception");
+        }
+        db.insert(getString(R.string.db_name), null, cv);
 
         dbHelper.close();
+
+        makeToast(getString(R.string.saved));
+        isSaved = true;
+        btSave.setVisibility(View.GONE);
     }
 
     private void dialogShow(final int status)
@@ -455,6 +456,18 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
             {
                 public void onClick(DialogInterface dialog, int arg1)
                 {
+                    save();
+                    switch (status)
+                    {
+                        case STATUS_START_PRESSED:
+                            start();
+                            break;
+                        case STATUS_BACK_PRESSED:
+                            finish();
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
         );

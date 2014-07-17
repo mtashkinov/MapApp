@@ -5,8 +5,19 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
-    <ListView
+    <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/listView"/>
+            android:text="@string/saved_runs"
+            android:id="@+id/tvLoad"
+            android:layout_gravity="center"
+            android:textSize="@dimen/tv_text"
+            android:singleLine="true"/>
+
+    <ListView
+            android:id="@+id/lvLoad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+    </ListView>
+
 </LinearLayout>

@@ -40,8 +40,7 @@
                     android:layout_gravity="center"
                     android:layout_weight="2"
                     android:textColor="@color/Black"
-                    android:minHeight="40dp"
-                    android:textSize="20dp"
+                    android:textSize="@dimen/tv_text"
                     android:clickable="true"
                     android:onClick="onClick"/>
 
@@ -55,7 +54,8 @@
                     android:maxWidth="50dp"
                     android:onClick="onClick"
                     android:layout_marginTop="1dp"
-                    android:layout_marginRight="1dp"/>
+                    android:layout_marginRight="1dp"
+                    android:textSize="@dimen/bt_text"/>
 
         </LinearLayout>
 

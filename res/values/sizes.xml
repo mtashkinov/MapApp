@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="tv_text">25dp</dimen>
+    <dimen name="bt_text">20dp</dimen>
+    <dimen name="menu_text">30dp</dimen>
+</resources>

@@ -22,27 +22,27 @@
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="New Run"
+                android:text="@string/new_run"
                 android:id="@+id/btNewRun"
                 android:layout_gravity="center_horizontal"
                 android:height="100dp"
                 android:layout_weight="1"
                 android:width="300dp"
                 android:layout_marginBottom="30dp"
-                android:textSize="30dp"
+                android:textSize="@dimen/menu_text"
                 />
 
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Load Run"
+                android:text="@string/load_run"
                 android:id="@+id/btLoad"
                 android:layout_gravity="center"
                 android:layout_weight="1"
                 android:width="300dp"
                 android:layout_marginTop="30dp"
                 android:height="100dp"
-                android:textSize="30dp"/>
+                android:textSize="@dimen/menu_text"/>
     </LinearLayout>
 
 

@@ -8,8 +8,12 @@
     <string name="no">No</string>
     <string name="cancel">Cancel</string>
     <string name="saved">Saved</string>
-    <string name="save_run">Saving run</string>
-    <string name="inp_name">Input run name</string>
+    <string name="saved_runs">Saved runs:</string>
+    <string name="nothing_saved">Runs not found</string>
     <string name="ok">Ok</string>
     <string name="db_name">mytable</string>
+    <string name="normal">Normal</string>
+    <string name="load_run">Load run</string>
+    <string name="follow">Following the current location</string>
+    <string name="follow_stopped">Following the current location stopped</string>
 </resources>
