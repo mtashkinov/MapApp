@@ -9,6 +9,8 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
 
@@ -19,9 +21,14 @@ import java.util.ArrayList;
 
 public class LoadActivity extends Activity
 {
+    final int MENU_RENAME = 0;
+    final int MENU_DELETE = 1;
+    final int MENU_DELETE_ALL = 2;
+
     DBHelper dbHelper;
     ListView lvLoad;
-    Context context;
+    TextView tvLoad;
+    ArrayList<String> names;
 
     int runsNum = 0;
 
@@ -32,12 +39,25 @@ public class LoadActivity extends Activity
         setContentView(R.layout.load);
         getActionBar().hide();
 
-        ArrayList<String> names = getNames();
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.load_list_item, names);
         lvLoad = (ListView) findViewById(R.id.lvLoad);
+        registerForContextMenu(lvLoad);
+
+        tvLoad = (TextView) findViewById(R.id.tvLoad);
+    }
+
+    private void updList()
+    {
+        names = getNames();
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.load_list_item, names);
         lvLoad.setAdapter(adapter);
         setListener();
-        context = this;
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        updList();
     }
 
     protected void setListener()
@@ -47,7 +67,7 @@ public class LoadActivity extends Activity
             public void onItemClick(AdapterView<?> parent, View view, int position, long id)
             {
                 int runNum = runsNum - position - 1;
-                Intent intent = new Intent(context, RunShowActivity.class);
+                Intent intent = new Intent(LoadActivity.this, RunShowActivity.class);
                 intent.putExtra("runNum", runNum);
                 startActivity(intent);
             }
@@ -56,7 +76,9 @@ public class LoadActivity extends Activity
 
     protected ArrayList<String> getNames()
     {
+        runsNum = 0;
         ArrayList<String> list = new ArrayList<String>();
+        TextView tvLoad = (TextView) findViewById(R.id.tvLoad);;
 
         dbHelper = new DBHelper(this);
         SQLiteDatabase db = dbHelper.getReadableDatabase();
@@ -66,6 +88,7 @@ public class LoadActivity extends Activity
         if (cursor.moveToFirst())
         {
             int nameIndex = cursor.getColumnIndex("name");
+            tvLoad.setText(R.string.saved_runs);
 
             do
             {
@@ -76,7 +99,6 @@ public class LoadActivity extends Activity
         }
         else
         {
-            TextView tvLoad = (TextView) findViewById(R.id.tvLoad);
             tvLoad.setText(R.string.nothing_saved);
         }
 
@@ -84,4 +106,41 @@ public class LoadActivity extends Activity
         dbHelper.close();
         return list;
     }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View view, ContextMenu.ContextMenuInfo contextMenuInfo)
+    {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)contextMenuInfo;
+        menu.setHeaderTitle(names.get(info.position));
+        String[] menuItems = getResources().getStringArray(R.array.load_menu);
+        for (int i = 0; i < menuItems.length; ++i)
+        {
+            menu.add(0, i, i, menuItems[i]);
+        }
+    }
+
+    public boolean onContextItemSelected(MenuItem item)
+    {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
+        int runNum = runsNum - info.position - 1;
+
+        switch (item.getItemId())
+        {
+            case MENU_RENAME:
+                Run run = new Run(this, runNum);
+                run.rename(this, runNum);
+                break;
+            case MENU_DELETE:
+                Run.delete(this, runNum);
+                break;
+            case MENU_DELETE_ALL:
+                Run.deleteAll(this);
+                break;
+            default:
+                break;
+        }
+
+        return super.onContextItemSelected(item);
+    }
+
 }

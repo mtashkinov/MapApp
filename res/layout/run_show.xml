@@ -23,14 +23,15 @@
                 android:layout_weight="1"
                 android:textSize="@dimen/bt_text"
                 android:layout_marginLeft="1dp"
-                android:layout_marginTop="1dp"/>
+                android:layout_marginTop="1dp"
+                android:maxWidth="50dp"/>
 
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:id="@+id/tvName"
                 android:layout_gravity="center"
-                android:layout_weight="2"
+                android:layout_weight="5"
                 android:textColor="@color/Black"
                 android:textSize="@dimen/tv_text"
                 android:gravity="center"/>
@@ -43,7 +44,8 @@
                 android:layout_weight="1"
                 android:textSize="@dimen/bt_text"
                 android:layout_marginTop="1dp"
-                android:layout_marginRight="1dp"/>
+                android:layout_marginRight="1dp"
+                android:maxWidth="50dp"/>
     </LinearLayout>
 
 </RelativeLayout>

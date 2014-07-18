@@ -11,9 +11,18 @@
     <string name="saved_runs">Saved runs:</string>
     <string name="nothing_saved">Runs not found</string>
     <string name="ok">Ok</string>
+    <string name="rename">Rename</string>
+    <string name="inp_new_name">Input new name:</string>
     <string name="db_name">mytable</string>
     <string name="normal">Normal</string>
     <string name="load_run">Load run</string>
     <string name="follow">Following the current location</string>
     <string name="follow_stopped">Following the current location stopped</string>
+    <string name="empty_name">Empty name</string>
+    <string name="deleted">Deleted</string>
+    <string name="delete_run_title">Delete</string>
+    <string name="delete_all_title">Delete all</string>
+    <string name="all_deleted">All runs deleted</string>
+    <string name="delete_all">Delete all runs?</string>
+    <string name="delete_run">Delete this run?</string>
 </resources>

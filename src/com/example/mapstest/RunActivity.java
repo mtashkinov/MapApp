@@ -35,15 +35,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     final int MAX_DISTANCE_DIFFERENCE = 10;
 
-    final int DIFFERENCE_NONE = 0;
-    final int DIFFERENCE_ONE = 1;
-    final int DIFFERENCE_TWO = 2;
-    final int DIFFERENCE_THREE = 3;
-    final int DIFFERENCE_FIVE = 5;
-    final int DIFFERENCE_TEN = 10;
-    final int DIFFERENCE_FIFTEEN = 15;
-    final int DIFFERENCE_TWENTY = 20;
-
     final int STATUS_START_PRESSED = 0;
     final int STATUS_BACK_PRESSED = 1;
 
@@ -51,7 +42,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     Boolean isRecording = false;
     Boolean isFollowing = false;
-    Boolean isAnythingPainting = false;
     Boolean isFirstLocationData = true;
     Boolean isSaved = false;
     String[] data = {"Normal", "Satellite", "Hybrid"};
@@ -79,7 +69,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         setContentView(R.layout.run);
         getActionBar().hide();
         tvDistance = (TextView) findViewById(R.id.tvDistance);
-        tvDistance.setGravity(Gravity.CENTER);
         btStart = (Button) findViewById(R.id.btStart);
         btStart.setOnClickListener(this);
         btSave = (Button) findViewById(R.id.btSave);
@@ -99,6 +88,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
         uiSettings = map.getUiSettings();
         uiSettings.setCompassEnabled(false);
+        registerForContextMenu(tvDistance);
 
         setLocationButtonPosition();
         setListeners();
@@ -225,28 +215,25 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu)
+    public void onCreateContextMenu(ContextMenu menu, View view, ContextMenu.ContextMenuInfo contextMenuInfo)
     {
-        menu.add(0, DIFFERENCE_NONE, 0, "Distance for update = 0");
-        menu.add(0, DIFFERENCE_ONE, 1, "Distance for update = 1");
-        menu.add(0, DIFFERENCE_TWO, 2, "Distance for update = 2");
-        menu.add(0, DIFFERENCE_THREE, 3, "Distance for update = 3");
-        menu.add(0, DIFFERENCE_FIVE, 4, "Distance for update = 5");
-        menu.add(0, DIFFERENCE_TEN, 5, "Distance for update = 10");
-        menu.add(0, DIFFERENCE_FIFTEEN, 6, "Distance for update = 15");
-        menu.add(0, DIFFERENCE_TWENTY, 7, "Distance for update = 20");
-        return super.onCreateOptionsMenu(menu);
+        menu.setHeaderTitle("Distance for update:");
+        int[] menuItems = getResources().getIntArray(R.array.distance_menu);
+        for (int item : menuItems)
+        {
+            menu.add(0, item, item, Integer.toString(item));
+        }
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item)
+    public boolean onContextItemSelected(MenuItem item)
     {
         locationManager.removeUpdates(this);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, item.getItemId(), this);
         delta = item.getItemId();
         drawDistance();
 
-        return super.onOptionsItemSelected(item);
+        return super.onContextItemSelected(item);
     }
 
     @Override
@@ -269,7 +256,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 curRun.locations.add(prevLocation);
             }
             curRun.locations.add(curLocation);
-            isAnythingPainting = true;
             curRun.drawSegment(map, prevLocation, curLocation);
             curRun.distance += location.distanceTo(prevLocation.toLocation(location.getProvider()));
             drawDistance();
@@ -305,7 +291,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     private void start()
     {
         curRun = new Run();
-        isAnythingPainting = false;
         map.clear();
         drawDistance();
         prevLocation = new MyLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
@@ -317,7 +302,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     @Override
     public void onBackPressed()
     {
-        if (isAnythingPainting && !isSaved)
+        if ((curRun.distance != 0) && !isSaved)
         {
             dialogShow(STATUS_BACK_PRESSED);
         }
@@ -338,14 +323,14 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                     isRecording = false;
                     isSaved = false;
                     btStart.setText("Start");
-                    if (isAnythingPainting)
+                    if (curRun.distance != 0)
                     {
                         btSave.setVisibility(View.VISIBLE);
                     }
                 }
                 else
                 {
-                    if (isAnythingPainting && !isSaved)
+                    if ((curRun.distance != 0) && !isSaved)
                     {
                         dialogShow(STATUS_START_PRESSED);
                     }
@@ -357,7 +342,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 break;
             case R.id.tvDistance:
             {
-                openOptionsMenu();
+                openContextMenu(tvDistance);
                 break;
             }
             case R.id.btSave:
@@ -369,39 +354,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 break;
         }
     }
-
-    /*private String getName()
-    {
-        AlertDialog.Builder dialog = new AlertDialog.Builder(RunActivity.this);
-        final EditText etName = (EditText) findViewById(R.id.etName);
-
-        dialog.setView(findViewById(R.layout.dialog));
-        dialog.setTitle(R.string.save_run);
-
-        dialog.setNeutralButton(
-            R.string.cancel,
-            new DialogInterface.OnClickListener()
-            {
-                public void onClick(DialogInterface dialog, int arg1)
-                {
-
-                }
-            }
-        );
-
-        dialog.setPositiveButton(
-                R.string.ok,
-                new DialogInterface.OnClickListener()
-                {
-                    public void onClick(DialogInterface dialog, int arg2)
-                    {
-                        result = etName.getText().toString();
-                    }
-                }
-        );
-        dialog.show();
-        return result;
-    }*/
 
     private void save()
     {
