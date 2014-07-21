@@ -1,7 +1,6 @@
 package com.example.mapstest;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -16,11 +15,6 @@ import com.google.android.gms.maps.model.*;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.view.Gravity;
 import android.view.View;
-
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener
 {

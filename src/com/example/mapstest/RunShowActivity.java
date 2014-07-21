@@ -1,8 +1,5 @@
 package com.example.mapstest;
 
-import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -15,9 +12,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLngBounds;
 
-public class RunShowActivity extends FragmentActivity implements View.OnClickListener
+public class RunShowActivity extends FragmentActivity implements View.OnClickListener, RepositoryChangedListener
 {
-    final int PADDING = 10;
+    final int PADDING = 100;
 
     SupportMapFragment mapFragment;
     GoogleMap map;
@@ -26,10 +23,9 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
     TextView tvName;
     Button btDelete;
     Button btToTrack;
-    DBHelper dbHelper;
     LatLngBounds cameraArea;
     CameraUpdate cameraUpdate;
-    int runNum;
+    TracksRepository tracksRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -37,6 +33,9 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.run_show);
         getActionBar().hide();
+
+        tracksRepository = (TracksRepository)getApplication();
+        tracksRepository.addListener(this);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         map = mapFragment.getMap();
@@ -46,12 +45,8 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
             return;
         }
 
-        Intent intent = getIntent();
-        runNum = intent.getIntExtra("runNum", -1);
-        run = new Run(this, runNum);
-
         tvName = (TextView) findViewById(R.id.tvName);
-        tvName.setText(getName());
+        tvName.setText(tracksRepository.getCurRunName());
         tvName.setOnClickListener(this);
 
         btDelete = (Button) findViewById(R.id.btDelete);
@@ -60,6 +55,7 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
         btToTrack = (Button) findViewById(R.id.btToTrack);
         btToTrack.setOnClickListener(this);
 
+        run = tracksRepository.getCurRun();
         prevLocation = run.locations.get(0);
         drawTrack();
 
@@ -75,25 +71,11 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
         });
     }
 
-    private String getName()
+    @Override
+    public void onDestroy()
     {
-        dbHelper = new DBHelper(this);
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-        String[] columns = new String[]{"name"};
-        Cursor cursor = db.query(getString(R.string.db_name), columns, null, null, null, null, null);
-
-        cursor.moveToFirst();
-        for (int i = 0; i < runNum; ++i)
-        {
-            cursor.moveToNext();
-        }
-        int nameIndex = cursor.getColumnIndex("name");
-        String name = cursor.getString(nameIndex);
-
-        cursor.close();
-        dbHelper.close();
-
-        return name;
+        super.onDestroy();
+        tracksRepository.removeListener(this);
     }
 
     public void drawTrack()
@@ -114,15 +96,31 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
         switch (view.getId())
         {
             case R.id.tvName:
-                run.rename(this, runNum);
-                tvName.setText(run.getName());
+                Dialogs.showRenameDialog(this);
                 break;
             case R.id.btDelete:
-                Run.delete(this, runNum);
-                finish();
+                Dialogs.showDeleteDialog(this);
                 break;
             case R.id.btToTrack:
                 map.animateCamera(cameraUpdate);
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void repositoryChanged(int actionCode)
+    {
+        switch (actionCode)
+        {
+            case TracksRepository.RENAMED:
+                tvName.setText(tracksRepository.getCurRunName());
+                break;
+            case TracksRepository.DELETED:
+                finish();
+                break;
+            case TracksRepository.DELETED_ALL:
                 break;
             default:
                 break;
