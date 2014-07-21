@@ -1,7 +1,5 @@
 package com.example.mapstest;
 
-import android.app.AlertDialog;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
@@ -9,7 +7,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.*;
@@ -35,9 +32,6 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     final int MAX_DISTANCE_DIFFERENCE = 10;
 
-    final int STATUS_START_PRESSED = 0;
-    final int STATUS_BACK_PRESSED = 1;
-
     int delta = 0;
 
     Boolean isRecording = false;
@@ -48,7 +42,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     Run curRun = new Run();
 
-    DBHelper dbHelper;
+    TracksRepository tracksRepository;
 
     SupportMapFragment mapFragment;
     GoogleMap map;
@@ -68,6 +62,9 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         super.onCreate(savedInstanceState);
         setContentView(R.layout.run);
         getActionBar().hide();
+
+        tracksRepository = (TracksRepository)getApplication();
+
         tvDistance = (TextView) findViewById(R.id.tvDistance);
         btStart = (Button) findViewById(R.id.btStart);
         btStart.setOnClickListener(this);
@@ -259,8 +256,8 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
             curRun.drawSegment(map, prevLocation, curLocation);
             curRun.distance += location.distanceTo(prevLocation.toLocation(location.getProvider()));
             drawDistance();
-            prevLocation = curLocation;
         }
+        prevLocation = curLocation;
     }
 
     protected void moveCamera(Location location, float zoom)
@@ -304,7 +301,18 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     {
         if ((curRun.distance != 0) && !isSaved)
         {
-            dialogShow(STATUS_BACK_PRESSED);
+            Dialogs.showSaveDialog(this, curRun, getString(R.string.exit), new DialogClickListener()
+            {
+                @Override
+                public void onDialogNotCanceled(boolean positiveButtonPressed)
+                {
+                    if (positiveButtonPressed)
+                    {
+                        saveActions();
+                    }
+                    finish();
+                }
+            });
         }
         else
         {
@@ -332,7 +340,18 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                 {
                     if ((curRun.distance != 0) && !isSaved)
                     {
-                        dialogShow(STATUS_START_PRESSED);
+                        Dialogs.showSaveDialog(this, curRun, getString(R.string.new_run), new DialogClickListener()
+                        {
+                            @Override
+                            public void onDialogNotCanceled(boolean positiveButtonPressed)
+                            {
+                                if (positiveButtonPressed)
+                                {
+                                    saveActions();
+                                }
+                                start();
+                            }
+                        });
                     }
                     else
                     {
@@ -347,7 +366,8 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
             }
             case R.id.btSave:
             {
-                save();
+                tracksRepository.save(curRun);
+                saveActions();
                 break;
             }
             default:
@@ -355,105 +375,10 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         }
     }
 
-    private void save()
+    private void saveActions()
     {
-        ContentValues cv = new ContentValues();
-        dbHelper = new DBHelper(this);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm");
-        Calendar calendar = Calendar.getInstance();
-        String name = dateFormat.format(calendar.getTime());
-
-
-        cv.put("name", name);
-        try
-        {
-            cv.put("run", Run.serialize(curRun));
-        }
-        catch (IOException ex)
-        {
-            System.out.println("IO Exception");
-        }
-        db.insert(getString(R.string.db_name), null, cv);
-
-        dbHelper.close();
-
         makeToast(getString(R.string.saved));
         isSaved = true;
         btSave.setVisibility(View.GONE);
-    }
-
-    private void dialogShow(final int status)
-    {
-        AlertDialog.Builder dialog = new AlertDialog.Builder(RunActivity.this);
-
-        switch (status)
-        {
-            case STATUS_START_PRESSED:
-                dialog.setTitle(R.string.new_run);
-                break;
-            case STATUS_BACK_PRESSED:
-                dialog.setTitle(R.string.exit);
-                break;
-            default:
-                break;
-        }
-
-        dialog.setMessage(R.string.save_data);
-
-        dialog.setPositiveButton (
-            R.string.yes,
-            new DialogInterface.OnClickListener()
-            {
-                public void onClick(DialogInterface dialog, int arg1)
-                {
-                    save();
-                    switch (status)
-                    {
-                        case STATUS_START_PRESSED:
-                            start();
-                            break;
-                        case STATUS_BACK_PRESSED:
-                            finish();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        );
-
-        dialog.setNeutralButton(
-            R.string.cancel,
-            new DialogInterface.OnClickListener()
-            {
-                public void onClick(DialogInterface dialog, int arg2)
-                {
-                }
-            }
-        );
-
-        dialog.setNegativeButton(
-            R.string.no,
-            new DialogInterface.OnClickListener()
-            {
-                public void onClick(DialogInterface dialog, int arg3)
-                {
-                    switch (status)
-                    {
-                        case STATUS_START_PRESSED:
-                            start();
-                            break;
-                        case STATUS_BACK_PRESSED:
-                            finish();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        );
-        dialog.show();
     }
 }
