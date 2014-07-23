@@ -11,41 +11,57 @@
             android:layout_height="match_parent"/>
 
     <LinearLayout
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="fill_parent">
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content">
 
-        <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delete"
-                android:id="@+id/btDelete"
-                android:layout_weight="1"
-                android:textSize="@dimen/bt_text"
-                android:layout_marginLeft="1dp"
-                android:layout_marginTop="1dp"
-                android:maxWidth="50dp"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Delete"
+                    android:id="@+id/btDelete"
+                    android:layout_weight="1"
+                    android:textSize="@dimen/bt_text"
+                    android:layout_marginLeft="1dp"
+                    android:layout_marginTop="1dp"
+                    android:maxWidth="50dp"/>
 
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/tvName"
-                android:layout_gravity="center"
-                android:layout_weight="5"
-                android:textColor="@color/Black"
-                android:textSize="@dimen/tv_text"
-                android:gravity="center"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/tvName"
+                    android:layout_gravity="center"
+                    android:layout_weight="5"
+                    android:textColor="@color/Black"
+                    android:textSize="@dimen/tv_text"
+                    android:gravity="center"/>
 
-        <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="To Track"
-                android:id="@+id/btToTrack"
-                android:layout_weight="1"
-                android:textSize="@dimen/bt_text"
-                android:layout_marginTop="1dp"
-                android:layout_marginRight="1dp"
-                android:maxWidth="50dp"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="To Track"
+                    android:id="@+id/btToTrack"
+                    android:layout_weight="1"
+                    android:textSize="@dimen/bt_text"
+                    android:layout_marginTop="1dp"
+                    android:layout_marginRight="1dp"
+                    android:maxWidth="50dp"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content" android:layout_gravity="center"
+                android:gravity="center">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tvDistance" android:textSize="@dimen/tv_text" android:textColor="@color/Black"
+                    android:layout_marginTop="1dp"/>
+        </LinearLayout>
     </LinearLayout>
 
 </RelativeLayout>

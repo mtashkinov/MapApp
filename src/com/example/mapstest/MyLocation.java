@@ -1,8 +1,6 @@
 package com.example.mapstest;
 
-import android.content.Context;
 import android.location.Location;
-import android.location.LocationManager;
 
 import java.io.Serializable;
 
@@ -14,6 +12,7 @@ public class MyLocation implements Serializable
     private float speed;
     private float accuracy;
     private float bearing;
+    private String provider;
 
     public MyLocation(Location location)
     {
@@ -23,6 +22,7 @@ public class MyLocation implements Serializable
         speed = location.getSpeed();
         accuracy = location.getAccuracy();
         bearing = location.getBearing();
+        provider = location.getProvider();
     }
 
     public double getLatitude()
@@ -55,7 +55,12 @@ public class MyLocation implements Serializable
         return bearing;
     }
 
-    public Location toLocation(String provider)
+    public String getProvider()
+    {
+        return provider;
+    }
+
+    public Location toLocation()
     {
         Location location = new Location(provider);
         location.setLatitude(latitude);
@@ -64,6 +69,7 @@ public class MyLocation implements Serializable
         location.setSpeed(speed);
         location.setAccuracy(accuracy);
         location.setBearing(bearing);
+        location.setProvider(provider);
 
         return location;
     }

@@ -1,18 +1,14 @@
 package com.example.mapstest;
 
-import android.graphics.Color;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.PolygonOptions;
+import android.util.Log;
 
 import java.io.*;
 import java.util.ArrayList;
 
 public class Run implements Serializable
 {
-    ArrayList<MyLocation> locations;
-    int distance;
+    private ArrayList<MyLocation> locations;
+    private int distance;
 
     public Run()
     {
@@ -20,44 +16,30 @@ public class Run implements Serializable
         distance = 0;
     }
 
-    public void drawSegment(GoogleMap map, MyLocation prevLocation, MyLocation curLocation)
+    public MyLocation[] getLocations()
     {
-        LatLng prevLatLng = new LatLng(prevLocation.getLatitude(), prevLocation.getLongitude());
-        LatLng curLatLng = new LatLng(curLocation.getLatitude(), curLocation.getLongitude());
-
-        PolygonOptions polygonOptions = new PolygonOptions()
-                .add(prevLatLng).add(curLatLng)
-                .strokeColor(Color.RED).strokeWidth(10).fillColor(Color.RED);
-        map.addPolygon(polygonOptions);
+        MyLocation[] array = new MyLocation[locations.size()];
+        array = locations.toArray(array);
+        return array;
     }
 
-    public LatLngBounds findCameraArea()
+    public void add(MyLocation location)
     {
-        double minLatitude = locations.get(0).getLatitude();
-        double maxLatitude = locations.get(0).getLatitude();
-        double minLongitude = locations.get(0).getLongitude();
-        double maxLongitude = locations.get(0).getLongitude();
-
-        for (MyLocation location : locations)
+        locations.add(location);
+        if (locations.size() > 1)
         {
-            if (location.getLatitude() > maxLatitude)
-            {
-                maxLatitude = location.getLatitude();
-            }
-            if (location.getLongitude() < minLatitude)
-            {
-                minLatitude = location.getLatitude();
-            }
-            if (location.getLongitude() > maxLongitude)
-            {
-                maxLongitude = location.getLongitude();
-            }
-            if (location.getLongitude() < minLongitude)
-            {
-                minLongitude = location.getLongitude();
-            }
+            MyLocation prevLocation = locations.get(locations.size() - 2);
+            distance += location.toLocation().distanceTo(prevLocation.toLocation());
         }
+    }
 
-        return new LatLngBounds(new LatLng(minLatitude, minLongitude), new LatLng(maxLatitude, maxLongitude));
+    public int getDistance()
+    {
+        return distance;
+    }
+
+    public boolean isEmpty()
+    {
+        return locations.isEmpty();
     }
 }

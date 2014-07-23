@@ -50,7 +50,7 @@ public class LoadActivity extends Activity implements RepositoryChangedListener
         lvLoad.setAdapter(adapter);
     }
 
-    protected void setListeners() {
+    private void setListeners() {
         lvLoad.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id)

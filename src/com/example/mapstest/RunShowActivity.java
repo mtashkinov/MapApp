@@ -19,8 +19,8 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
     SupportMapFragment mapFragment;
     GoogleMap map;
     Run run;
-    MyLocation prevLocation;
     TextView tvName;
+    TextView tvDistance;
     Button btDelete;
     Button btToTrack;
     LatLngBounds cameraArea;
@@ -56,10 +56,12 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
         btToTrack.setOnClickListener(this);
 
         run = tracksRepository.getCurRun();
-        prevLocation = run.locations.get(0);
-        drawTrack();
+        DrawHelper.drawTrack(run, map);
 
-        cameraArea = run.findCameraArea();
+        tvDistance = (TextView) findViewById(R.id.tvDistance);
+        tvDistance.setText("Distance: " + run.getDistance());
+
+        cameraArea = DrawHelper.findCameraArea(run);
         cameraUpdate = CameraUpdateFactory.newLatLngBounds(cameraArea, PADDING);
         map.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback()
         {
@@ -76,18 +78,6 @@ public class RunShowActivity extends FragmentActivity implements View.OnClickLis
     {
         super.onDestroy();
         tracksRepository.removeListener(this);
-    }
-
-    public void drawTrack()
-    {
-        for (MyLocation location : run.locations)
-        {
-            if (prevLocation != location)
-            {
-                run.drawSegment(map, prevLocation, location);
-                prevLocation = location;
-            }
-        }
     }
 
     @Override

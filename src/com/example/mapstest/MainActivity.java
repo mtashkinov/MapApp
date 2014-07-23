@@ -45,7 +45,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         btLoadRun.setOnClickListener(this);
     }
 
-    protected void moveCamera()
+    private void moveCamera()
     {
         LatLng latLng = new LatLng(59.8811181, 29.89100325);
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 18);

@@ -25,6 +25,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     final float START_ZOOM = 18;
 
     final int MAX_DISTANCE_DIFFERENCE = 10;
+    final int LOCATION_BUTTON_MARGIN = 200;
 
     int delta = 0;
 
@@ -106,7 +107,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
         FrameLayout.LayoutParams positionParams = new FrameLayout.LayoutParams(
                 positionWidth, positionHeight);
-        positionParams.setMargins(0, 200, 0, 0);
+        positionParams.setMargins(0, LOCATION_BUTTON_MARGIN, 0, 0);
 
         myLocationParent.setLayoutParams(positionParams);
     }
@@ -120,7 +121,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
 
     private void drawDistance()
     {
-        tvDistance.setText("Distance: " + curRun.distance + " delta: " + delta);
+        tvDistance.setText("Distance: " + curRun.getDistance() + " delta: " + delta);
     }
 
     private void setSpinner()
@@ -240,15 +241,14 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         {
             moveCamera(location, map.getCameraPosition().zoom);
         }
-        if (isRecording && (location.distanceTo(prevLocation.toLocation(location.getProvider())) < MAX_DISTANCE_DIFFERENCE + delta))
+        if (isRecording && (location.distanceTo(prevLocation.toLocation()) < MAX_DISTANCE_DIFFERENCE + delta))
         {
-            if (curRun.locations.isEmpty())
+            if (!curRun.isEmpty())
             {
-                curRun.locations.add(prevLocation);
+                curRun.add(prevLocation);
             }
-            curRun.locations.add(curLocation);
-            curRun.drawSegment(map, prevLocation, curLocation);
-            curRun.distance += location.distanceTo(prevLocation.toLocation(location.getProvider()));
+            curRun.add(curLocation);
+            DrawHelper.drawSegment(map, prevLocation, curLocation);
             drawDistance();
         }
         prevLocation = curLocation;
@@ -293,7 +293,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     @Override
     public void onBackPressed()
     {
-        if ((curRun.distance != 0) && !isSaved)
+        if ((!curRun.isEmpty()) && !isSaved)
         {
             Dialogs.showSaveDialog(this, curRun, getString(R.string.exit), new DialogClickListener()
             {
@@ -325,14 +325,14 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                     isRecording = false;
                     isSaved = false;
                     btStart.setText("Start");
-                    if (curRun.distance != 0)
+                    if (!curRun.isEmpty())
                     {
                         btSave.setVisibility(View.VISIBLE);
                     }
                 }
                 else
                 {
-                    if ((curRun.distance != 0) && !isSaved)
+                    if ((!curRun.isEmpty()) && !isSaved)
                     {
                         Dialogs.showSaveDialog(this, curRun, getString(R.string.new_run), new DialogClickListener()
                         {

@@ -1,15 +1,10 @@
 package com.example.mapstest;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Application;
 import android.content.ContentValues;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.*;
 import java.text.DateFormat;
