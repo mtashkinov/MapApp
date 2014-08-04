@@ -2,12 +2,16 @@ package com.example.mapstest;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.view.*;
 import android.widget.*;
 import com.google.android.gms.maps.*;
@@ -16,18 +20,23 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.view.Gravity;
 import android.view.View;
 
-public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener
+public class RunActivity extends FragmentActivity implements LocationListener, View.OnClickListener, SensorEventListener
 {
-    final String TAG = "myLogs";
-
-    final double ACCURACY = 0.0005;
+    final double LOC_ACCURACY = 0.0005;
+    final double ACC_ACCURACY = 3;
+    final double MIN_COS = 0.7;
 
     final float START_ZOOM = 18;
 
     final int MAX_DISTANCE_DIFFERENCE = 10;
     final int LOCATION_BUTTON_MARGIN = 200;
+    final int UPD_TIME = 3000;
 
     int delta = 0;
+    int sequenceLength;
+
+    double[] curVector;
+    double[] maxVector;
 
     Boolean isRecording = false;
     Boolean isFollowing = false;
@@ -43,8 +52,12 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     GoogleMap map;
     UiSettings uiSettings;
     LocationManager locationManager;
+    SensorManager sensorManager;
+    Sensor sensorLinAccel;
+    private PowerManager.WakeLock mWakeLock;
 
     TextView tvDistance;
+    TextView tvSteps;
     Button btStart;
     Button btSave;
 
@@ -65,6 +78,8 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         btStart.setOnClickListener(this);
         btSave = (Button) findViewById(R.id.btSave);
         btSave.setOnClickListener(this);
+        tvSteps = (TextView) findViewById(R.id.tvSteps);
+        tvSteps.setText("Steps: 0");
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         map = mapFragment.getMap();
@@ -82,6 +97,12 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
         uiSettings.setCompassEnabled(false);
         registerForContextMenu(tvDistance);
 
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sensorLinAccel = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "myLogs");
+
         setLocationButtonPosition();
         setListeners();
         setSpinner();
@@ -91,8 +112,10 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     protected void onResume()
     {
         super.onResume();
-        moveCamera(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER), START_ZOOM);
-        curLocation = new MyLocation(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER));
+        if (locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER) != null)
+        {
+            moveCamera(locationManager.getLastKnownLocation(locationManager.GPS_PROVIDER), START_ZOOM);
+        }
         isFirstLocationData = true;
     }
 
@@ -117,6 +140,11 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     {
         super.onDestroy();
         locationManager.removeUpdates(this);
+        if (isRecording)
+        {
+            sensorManager.unregisterListener(this);
+            mWakeLock.release();
+        }
     }
 
     private void drawDistance()
@@ -191,7 +219,7 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                     public void onCameraChange(CameraPosition cameraPosition)
                     {
                         LatLng latLng = cameraPosition.target;
-                        if (isFollowing && ((Math.abs(curLocation.getLongitude() - latLng.longitude) > ACCURACY) || (Math.abs(curLocation.getLatitude() - latLng.latitude) > ACCURACY)))
+                        if (isFollowing && ((Math.abs(curLocation.getLongitude() - latLng.longitude) > LOC_ACCURACY) || (Math.abs(curLocation.getLatitude() - latLng.latitude) > LOC_ACCURACY)))
                         {
                             makeToast(getString(R.string.follow_stopped));
                             isFollowing = false;
@@ -277,23 +305,88 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
     {
     }
 
+    @Override
+    public void onSensorChanged(SensorEvent event)
+    {
+        if (isRecording)
+        {
+            switch (event.sensor.getType())
+            {
+                case Sensor.TYPE_LINEAR_ACCELERATION:
+                    curVector = new double[4];
+                    curVector[0] = event.values[0];
+                    curVector[1] = event.values[1];
+                    curVector[2] = event.values[2];
+                    curVector[3] = Math.sqrt(curVector[0] * curVector[0] + curVector[1] * curVector[1] + curVector[2] * curVector[2]);
 
+                    if (curVector[3] > ACC_ACCURACY)
+                    {
+                        double scalar;
+                        double cos;
+                        boolean isStep = false;
+
+                        scalar = curVector[0] * maxVector[0] + curVector[1] * maxVector[1] + curVector[2] * maxVector[2];
+                        cos = scalar / curVector[3] / maxVector[3];
+
+                        if (Math.abs(cos) > MIN_COS)
+                        {
+                            if (cos < MIN_COS)
+                            {
+                                ++sequenceLength;
+                            }
+                            else
+                            {
+
+                                if (sequenceLength > 2)
+                                {
+                                    isStep = true;
+                                }
+                                sequenceLength = 0;
+                            }
+                        }
+
+                        if (curVector[3] > maxVector[3])
+                        {
+                            maxVector = curVector;
+                        }
+
+                        if (isStep)
+                        {
+                            maxVector = curVector;
+                            curRun.incSteps();
+                        }
+                        tvSteps.setText("Steps: " + curRun.getSteps());
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy)
+    {
+    }
 
     private void start()
     {
         curRun = new Run();
         map.clear();
         drawDistance();
+        sensorManager.registerListener(this, sensorLinAccel, UPD_TIME);
+        sequenceLength = 0;
         prevLocation = new MyLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         isRecording = true;
+        mWakeLock.acquire();
+        tvSteps.setText("Steps: 0");
         btStart.setText("Stop");
+        maxVector = new double[4];
         btSave.setVisibility(View.GONE);
     }
 
     @Override
     public void onBackPressed()
     {
-        if ((!curRun.isEmpty()) && !isSaved)
+        if (((!curRun.isEmpty()) || (curRun.getSteps() != 0))  && !isSaved)
         {
             Dialogs.showSaveDialog(this, curRun, getString(R.string.exit), new DialogClickListener()
             {
@@ -325,14 +418,16 @@ public class RunActivity extends FragmentActivity implements LocationListener, V
                     isRecording = false;
                     isSaved = false;
                     btStart.setText("Start");
-                    if (!curRun.isEmpty())
+                    mWakeLock.release();
+                    sensorManager.unregisterListener(this);
+                    if ((!curRun.isEmpty()) || (curRun.getSteps() != 0))
                     {
                         btSave.setVisibility(View.VISIBLE);
                     }
                 }
                 else
                 {
-                    if ((!curRun.isEmpty()) && !isSaved)
+                    if (((!curRun.isEmpty()) || (curRun.getSteps() != 0))  && !isSaved)
                     {
                         Dialogs.showSaveDialog(this, curRun, getString(R.string.new_run), new DialogClickListener()
                         {

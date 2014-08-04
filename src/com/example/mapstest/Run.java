@@ -1,7 +1,5 @@
 package com.example.mapstest;
 
-import android.util.Log;
-
 import java.io.*;
 import java.util.ArrayList;
 
@@ -9,11 +7,13 @@ public class Run implements Serializable
 {
     private ArrayList<MyLocation> locations;
     private int distance;
+    private int steps;
 
     public Run()
     {
         locations = new ArrayList<MyLocation>();
         distance = 0;
+        steps = 0;
     }
 
     public MyLocation[] getLocations()
@@ -36,6 +36,16 @@ public class Run implements Serializable
     public int getDistance()
     {
         return distance;
+    }
+
+    public void incSteps()
+    {
+        ++steps;
+    }
+
+    public int getSteps()
+    {
+        return steps;
     }
 
     public boolean isEmpty()

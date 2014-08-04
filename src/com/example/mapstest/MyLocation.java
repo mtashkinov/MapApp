@@ -1,6 +1,7 @@
 package com.example.mapstest;
 
 import android.location.Location;
+import android.util.Log;
 
 import java.io.Serializable;
 
@@ -16,6 +17,7 @@ public class MyLocation implements Serializable
 
     public MyLocation(Location location)
     {
+        Log.d("myLogs", "" + location);
         latitude = location.getLatitude();
         longitude = location.getLongitude();
         time = location.getTime();
